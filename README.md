@@ -1,109 +1,130 @@
-# Real-Time Object Tracking & Surveillance Pipeline
+# Real-Time Distributed Object Tracking Pipeline
 
-![Build Status](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A proof-of-concept distributed system for real-time video analysis. This project simulates a modern Command and Control (C2) or Internet of Military Things (IoMT) data pipeline, capable of ingesting a video stream, performing intelligent object tracking, and making the results available for visualization. The system is built on a robust, message-driven architecture to ensure scalability and resilience.
+A proof-of-concept distributed system for real-time video analysis. This project simulates a modern data pipeline for surveillance or C2 (Command and Control) applications, built on a scalable, message-driven architecture. It ingests a video stream, performs intelligent object tracking, persists the data, and provides results for real-time visualization or post-processing.
 
 ---
 
-## Live Demo
+<!-- ## 🎥 Live Demo
 
 
----
+--- -->
 
-## Key Features
-* **Distributed Architecture:** A multi-service system orchestrated with Docker Compose, demonstrating a clean separation of concerns.
-* **Asynchronous Messaging:** Uses **RabbitMQ** as a message broker to decouple services, handle backpressure, and ensure data is not lost.
-* **AI-Powered Processing:** Performs real-time object detection using a **YOLOv8** model.
-* **Stateful Object Tracking:** Implements the **SORT algorithm** to maintain a persistent ID for each detected object across video frames.
-* **Data Persistence:** Logs all track data (object ID, class, coordinates, timestamp) to an **SQLite** database for auditing and future analysis.
-<!-- * **Edge AI Optimization:** Includes functionality to convert the model to **TensorFlow Lite (INT8 Quantized)**, demonstrating an understanding of performance optimization for edge devices. -->
-* **Real-time Viewer:** A local Python viewer subscribes to the results queue to display the annotated video feed live.
-* **Headless Video Compiler:** A containerized script to assemble the final annotated frames into a shareable MP4 video file.
+## ✨ Key Features
+* **Distributed Architecture:** A multi-service system fully orchestrated with Docker Compose, demonstrating a clean separation of concerns.
+* **Asynchronous Messaging:** Utilizes **RabbitMQ** as a message broker to decouple services, handle backpressure, and ensure data resilience.
+* **AI-Powered Processing:** Performs high-performance object detection using a **YOLOv8** model.
+* **Stateful Object Tracking:** Implements the **SORT algorithm** via the `supervision` library to maintain a persistent ID for each detected object across frames.
+* **Data Persistence:** Logs all track data (object ID, class, coordinates, timestamp) to an **SQLite** database for auditing and offline analysis.
+* **Multiple Consumers:** Provides both a real-time local `viewer` and a headless `video_compiler` service to demonstrate the flexibility of the pub/sub architecture.
 
 ---
 
-## System Architecture
-The system is designed as a decoupled pipeline with three primary services communicating via a message broker. This design allows for independent scaling and robust error handling.
+## 🏗️ System Architecture
+The system is designed as a decoupled pipeline where services communicate asynchronously via a central message broker. This design allows for independent scaling of components and makes the system resilient to individual service failures.
 
+```mermaid
+graph TD
+    subgraph Host Machine
+        A[▶️ test_video.mp4] --> B(Publisher Service);
+        subgraph Docker Environment
+            B --> C{RabbitMQ};
+            C -- JPEG Frames --> D[frame_queue];
+            D --> E(🔬 Worker Service);
+            E -- Track Data --> F[(SQLite DB)];
+            E -- Annotated Frames --> G[results_queue];
+            C --> G;
+        end
+        G --> H(🖥️ Local Viewer);
+        G --> I(🎬 Video Compiler Service);
+    end
+    I --> J[🏆 annotated_video.mp4];
 
-
-1.  **Publisher:** This service acts as a sensor feed. It reads frames from a source video, compresses them, and publishes them to the `frame_queue` in RabbitMQ.
-2.  **Worker:** The core processing engine. It consumes frames from the `frame_queue`, performs detection and tracking, saves the results to a database, and publishes the final annotated frames to the `results_queue`.
-3.  **Viewer/Compiler:** A consumer of the `results_queue`. This can be either the real-time Python viewer running locally or a headless compiler that creates a final video.
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style J fill:#f9f,stroke:#333,stroke-width:2px
+```
+1.  The **Publisher** reads the source video, encodes frames to JPEG, and sends them to the `frame_queue`.
+2.  The **Worker** consumes frames, performs YOLO detection + SORT tracking, saves track data to the SQLite database (which it initializes on first run), and publishes the final annotated frames to the `results_queue`.
+3.  The **Local Viewer** and **Video Compiler** are independent consumers of the `results_queue`.
 
 ---
 
-## Setup & Usage
-This project is fully containerized and managed with Docker Compose.
+## 🛠️ Technology Stack
+* **Backend:** Python
+* **AI / Computer Vision:** PyTorch, Ultralytics YOLOv8, OpenCV, Supervision, SORT
+* **Messaging:** RabbitMQ, Pika
+* **Database:** SQLite
+* **Containerization:** Docker, Docker Compose
 
-### Prerequisites
-* [Docker](https://www.docker.com/get-started)
-* [Docker Compose](https://docs.docker.com/compose/install/)
+---
 
-### Configuration
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/YOUR_USERNAME/YOUR_REPO.git](https://github.com/YOUR_USERNAME/YOUR_REPO.git)
-    cd YOUR_REPO
-    ```
-2.  Create a `data/` directory for your input video.
-    ```bash
-    mkdir data
-    ```
-3.  Place your test video file inside the `data/` directory (e.g., `data/test_video.mp4`).
-4.  Copy the example environment file and edit it if necessary.
-    ```bash
-    cp .env.example .env
-    ```
+## 🚀 Setup & Usage
+This project is fully containerized. The only prerequisites are **Docker** and **Docker Compose**.
 
-### Running the Application
-1.  **Build the Docker images:**
-    ```bash
-    docker-compose build
-    ```
-2.  **Launch the main pipeline** (publisher, worker, and message queue):
-    ```bash
-    docker-compose up publisher worker rabbitmq
-    ```
-    You will see the logs from the services in your terminal as the video is processed.
+### 1. Configuration
+```bash
+# Clone the repository
+git clone [https://github.com/YOUR_USERNAME/YOUR_REPO.git](https://github.com/YOUR_USERNAME/YOUR_REPO.git)
+cd YOUR_REPO
 
-### Viewing the Results
-You have two options to see the output.
+# Create a 'data' directory for your input video
+mkdir data
+
+# Download or place your test video file inside the 'data' directory
+# (e.g., place your test_video.mp4 file in the data/ folder).
+# You can also edit the video path in the config/config.yaml file.
+```
+
+### 2. Running the Application
+The entire pipeline is managed by `docker-compose`.
+
+```bash
+# 1. Build all the service images
+docker-compose build
+
+# 2. Launch the main pipeline (publisher and worker)
+# The worker will automatically initialize the database on its first run.
+docker-compose up publisher worker
+```
+The services will now run until the video has been fully processed.
+
+### 3. Viewing the Results
+
+You have two options to see the output:
 
 **Option A: Real-Time Viewer (Run while the pipeline is active)**
 1.  In a **new, separate terminal**, navigate to the project directory and activate your local Python virtual environment.
 2.  Run the viewer script:
     ```bash
-    python src/viewer.py
+    python app/viewer.py
     ```
     A window will pop up showing the live, annotated video feed.
 
 **Option B: Compile the Final Video (Run after the pipeline is finished)**
-1.  Once the publisher has finished sending all frames, stop the running services with `Ctrl+C`.
+1.  Once the publisher has finished, stop the running services with `Ctrl+C`.
 2.  Run the video compiler script as a one-off task:
     ```bash
-    docker-compose run --rm worker python src/video_compiler.py
+    docker-compose run --rm worker python app/video_compiler.py
     ```
-    The final annotated video will be saved in your `output/` directory.
+    The final video (`annotated_video.mp4`) will be saved in your `output/` directory.
 
-### Cleaning Up
+### 4. Cleaning Up
 To stop and remove all containers, run:
 ```bash
 docker-compose down
 ```
+---
 
-### Project Structure
-.
-├── src/                  # Main application code
-│   ├── worker.py         # AI processing and tracking
-│   ├── publisher.py      # Video ingestion
-│   ├── viewer.py         # Real-time viewer
-│   ├── video_compiler.py # Final video assembly
-│   └── db_setup.py       # Database initialization
-├── data/                 # Input video files (ignored by Git)
-├── .env.example          # Environment variable template
-├── docker-compose.yml    # Defines the multi-service application
-├── Dockerfile            # Defines the container image for Python services
-└── README.md             # This file
+## 🔮 Possible Future Improvements
+This project serves as a strong foundation. Potential future enhancements include:
+* **Model Optimization:** Implementing **INT8 quantization** with TensorFlow Lite or TensorRT to reduce model size and improve inference speed for edge deployment.
+* **Replacing SQLite with PostgreSQL** for a more robust, production-grade database that can handle concurrent writes more effectively.
+* **Implementing a more advanced tracker** like DeepSORT for better handling of object occlusions.
+* **Adding a metrics pipeline** using Prometheus and Grafana to monitor system performance (e.g., queue depth, processing latency).
+* **Adding a CI/CD Pipeline** with GitHub Actions to automate linting, testing, and image building.
+
+---
+
+## 📜 License
+This project is licensed under the MIT License. See the `LICENSE` file for details.
