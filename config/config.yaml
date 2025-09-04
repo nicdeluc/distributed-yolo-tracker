@@ -1,0 +1,19 @@
+data:
+  video_path: 'data/motorway_frontal_traffic.mp4'
+
+rabbitmq:
+  host: 'rabbitmq'
+  frame_queue: 'frame_queue'
+  annotated_frame_queue: 'annotated_frame_queue'
+
+model:
+  path: 'yolov8n.pt'
+  confidence_threshold: 0.5
+  iou_threshold: 0.4
+
+output:
+  save_annotated_frames: true
+  frames_dir: 'output/frames'
+  database_path: 'output/tracks.db'
+  logs_path: 'output/logs.csv'
+  annotated_video_path: 'output'

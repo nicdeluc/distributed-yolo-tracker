@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pt
+TODO
+output/
+*_test.py
+data/
+*.mp4
+exploration/

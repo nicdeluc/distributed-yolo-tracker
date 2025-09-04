@@ -1,0 +1,29 @@
+services:
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    ports:
+      - '5672:5672'   # Port for application connection
+      - '15672:15672' # Port for web management UI
+    healthcheck:
+        test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  publisher:
+    build: .
+    command: ['python', 'src/publisher.py']
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ['python', 'src/worker.py']
+    volumes:
+      - ./output:/app/output
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
