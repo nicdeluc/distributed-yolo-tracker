@@ -1,6 +1,9 @@
 # Real-Time Distributed Object Tracking Pipeline
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.7-orange)](https://pytorch.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 A proof-of-concept distributed system for real-time video analysis. This project simulates a modern data pipeline for surveillance or C2 (Command and Control) applications, built on a scalable, message-driven architecture. It ingests a video stream, performs intelligent object tracking, persists the data, and provides results for real-time visualization or post-processing.
 
@@ -23,29 +26,6 @@ A proof-of-concept distributed system for real-time video analysis. This project
 ## 🏗️ System Architecture
 The system is designed as a decoupled pipeline where services communicate asynchronously via a central message broker. This design allows for independent scaling of components and makes the system resilient to individual service failures.
 
-graph TD
-    subgraph Docker Environment
-        P[Publisher Container] -- "Raw Frames (JSON)" --> RMQ[RabbitMQ Container]
-        RMQ -- "Raw Frames" --> W[Worker Container]
-        W -- "Annotated Frames (JSON)" --> RMQ
-    end
-
-    subgraph Local Machine
-        V[Local Viewer]
-        DB[(SQLite DB)]
-        AF[Annotated Frames]
-    end
-    
-    subgraph "Shared Volume (./output)"
-        direction LR
-        DB
-        AF
-    end
-
-    RMQ -- "Annotated Frames" --> V
-    W -- "Writes to" --> DB
-    W -- "Saves to" --> AF
-    
 ```mermaid
 graph LR
     %% -- Define Style Classes for consistency --
@@ -160,6 +140,8 @@ docker-compose down
 
 ## 🔮 Possible Future Improvements
 This project serves as a strong foundation. Potential future enhancements include:
+
+* **Live Demo:** Implement a user-friendly live demo using **Gradio** that takes a video and outputs the corresponding annotated video.
 * **Model Optimization:** Implementing **INT8 quantization** with TensorFlow Lite or TensorRT to reduce model size and improve inference speed for edge deployment.
 * **Replacing SQLite with PostgreSQL** for a more robust, production-grade database that can handle concurrent writes more effectively.
 * **Implementing a more advanced tracker** like DeepSORT for better handling of object occlusions.
