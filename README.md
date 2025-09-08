@@ -85,9 +85,10 @@ graph LR
     ResultsQueue --> Compiler;
     Compiler -- Creates --> OutputVideo;
 ```
-1.  The **Publisher** reads the source video, encodes frames to JPEG, and sends them to the `frame_queue`.
-2.  The **Worker** consumes frames, performs YOLO detection + SORT tracking, saves track data to the SQLite database (which it initializes on first run), and publishes the final annotated frames to the `results_queue`.
-3.  The **Local Viewer** and **Video Compiler** are independent consumers of the `results_queue`.
+
+1. The **Publisher** reads the source video, encodes frames to JPEG, and sends them to the `frame_queue`.
+2. The **Worker** consumes frames, performs YOLO detection + SORT tracking, saves track data to the SQLite database (which it initializes on first run), and publishes the final annotated frames to the `results_queue`.
+3. The **Local Viewer** and **Video Compiler** are independent consumers of the `results_queue`.
 
 ---
 
@@ -106,7 +107,7 @@ This project is fully containerized. The only prerequisites are **Docker** and *
 ### 1. Configuration
 ```bash
 # Clone the repository
-git clone [https://github.com/YOUR_USERNAME/YOUR_REPO.git](https://github.com/YOUR_USERNAME/YOUR_REPO.git)
+git clone https://github.com/nicdeluc/distributed-yolo-tracker.git
 cd YOUR_REPO
 
 # Create a 'data' directory for your input video
