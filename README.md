@@ -150,5 +150,5 @@ This project serves as a strong foundation. Potential future enhancements includ
 
 ---
 
-## 📜 License
+## 📄 License
 This project is licensed under the MIT License. See the `LICENSE` file for details.
