@@ -8,7 +8,6 @@ A proof-of-concept distributed system for real-time video analysis. This project
 
 <!-- ## 🎥 Live Demo
 
-
 --- -->
 
 ## ✨ Key Features
@@ -24,25 +23,67 @@ A proof-of-concept distributed system for real-time video analysis. This project
 ## 🏗️ System Architecture
 The system is designed as a decoupled pipeline where services communicate asynchronously via a central message broker. This design allows for independent scaling of components and makes the system resilient to individual service failures.
 
-```mermaid
 graph TD
-    subgraph Host Machine
-        A[▶️ test_video.mp4] --> B(Publisher Service);
-        subgraph Docker Environment
-            B --> C{RabbitMQ};
-            C -- JPEG Frames --> D[frame_queue];
-            D --> E(🔬 Worker Service);
-            E -- Track Data --> F[(SQLite DB)];
-            E -- Annotated Frames --> G[results_queue];
-            C --> G;
-        end
-        G --> H(🖥️ Local Viewer);
-        G --> I(🎬 Video Compiler Service);
+    subgraph Docker Environment
+        P[Publisher Container] -- "Raw Frames (JSON)" --> RMQ[RabbitMQ Container]
+        RMQ -- "Raw Frames" --> W[Worker Container]
+        W -- "Annotated Frames (JSON)" --> RMQ
     end
-    I --> J[🏆 annotated_video.mp4];
 
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style J fill:#f9f,stroke:#333,stroke-width:2px
+    subgraph Local Machine
+        V[Local Viewer]
+        DB[(SQLite DB)]
+        AF[Annotated Frames]
+    end
+    
+    subgraph "Shared Volume (./output)"
+        direction LR
+        DB
+        AF
+    end
+
+    RMQ -- "Annotated Frames" --> V
+    W -- "Writes to" --> DB
+    W -- "Saves to" --> AF
+    
+```mermaid
+graph LR
+    %% -- Define Style Classes for consistency --
+    classDef service fill:#e1effa,stroke:#367dca,stroke-width:2px;
+    classDef broker fill:#ffe8d1,stroke:#f5a623,stroke-width:2px;
+    classDef data fill:#f4f4f4,stroke:#333,stroke-width:2px;
+    classDef queue fill:#fff2cc,stroke:#f5a623,stroke-width:1px;
+
+    %% -- Define Components --
+    subgraph Host Machine
+        InputVideo[▶️ test_video.mp4]:::data;
+        Viewer(🖥️ Local Viewer):::service;
+    end
+
+    subgraph Docker Environment
+        Publisher(Publisher Service):::service;
+        RabbitMQ{RabbitMQ Broker}:::broker;
+        Worker(🔬 Worker Service <br/> YOLO + SORT):::service;
+        Database[(SQLite DB)]:::data;
+        Compiler(🎬 Video Compiler):::service;
+        OutputVideo[🏆 annotated_video.mp4]:::data;
+
+        subgraph RabbitMQ
+            direction TB;
+            FrameQueue[frame_queue]:::queue;
+            ResultsQueue[results_queue]:::queue;
+        end
+    end
+    
+    %% -- Define Data Flow --
+    InputVideo -- Reads --> Publisher;
+    Publisher -- JPEG Frames --> FrameQueue;
+    FrameQueue --> Worker;
+    Worker -- Track Data --> Database;
+    Worker -- Annotated Frames --> ResultsQueue;
+    ResultsQueue --> Viewer;
+    ResultsQueue --> Compiler;
+    Compiler -- Creates --> OutputVideo;
 ```
 1.  The **Publisher** reads the source video, encodes frames to JPEG, and sends them to the `frame_queue`.
 2.  The **Worker** consumes frames, performs YOLO detection + SORT tracking, saves track data to the SQLite database (which it initializes on first run), and publishes the final annotated frames to the `results_queue`.
